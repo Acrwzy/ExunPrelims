@@ -28,20 +28,44 @@ test_dataset = test.flow_from_directory("/Test/",
 
 # Begin: keras
 
-model = keras.Sequential()
+model = tf.keras.models.Sequential()
 
-# Layer created with 32 filters, 5x5 kernel size, 150x150 resolution and 2 dimensions
+# This is the first convolution
 
-model.add(keras.layers.Conv2D(32, (5,5), activation='relu', input_shape=(150,150,3)))
-model.add(keras.layers.MaxPool2D(2,2))
+tf.keras.layers.Conv2D(16, (3,3), activation='relu', input_shape=(200, 200, 3)),
+tf.keras.layers.MaxPooling2D(2, 2),
 
-# 512 neuron layer
+# The second convolution
 
-model.add(keras.layers.Dense(512,activation='relu'))
+tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
+tf.keras.layers.MaxPooling2D(2,2),
 
-# Sigmod is used here to diffrenciate between 0's and 1's
+# The third convolution
 
-model.add(keras.layers.Dense(1,activation='sigmoid'))
+tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+tf.keras.layers.MaxPooling2D(2,2),
+
+# The fourth convolution
+
+tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+tf.keras.layers.MaxPooling2D(2,2),
+
+# The fifth convolution
+
+tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+tf.keras.layers.MaxPooling2D(2,2),
+
+# Flatten the results to feed into a DNN
+
+tf.keras.layers.Flatten(),
+
+# 512 neuron hidden layer
+
+tf.keras.layers.Dense(512, activation='relu'),
+
+# Only 1 output neuron. It will contain a value from 0-1 where 0 for 1 class ('dandelions') and 1 for the other ('grass')
+
+tf.keras.layers.Dense(1, activation='sigmoid')
 
 # Compiling the AI
 
@@ -50,7 +74,7 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']
 # Training the model: 
 
 model.fit_generator(train_dataset,
-                    steps_per_epoch = 0.5,
+                    steps_per_epoch = 8,
                     epochs = 16,
                     validation_data = test_dataset)
 
