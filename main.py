@@ -11,30 +11,30 @@ import cv2
 from PIL import Image
 import numpy as np
 
-image_directory = '/dataset'
+image_directory = '/Binary/'
 SIZE = 512  
 
 dataset = []  #Many ways to handle data, you can use pandas. Here, we are using a list format.  
 label = []  #Place holders to define add labels. We will add 0 to all parasitized images and 1 to uninfected.
 
-adidas_images = os.listdir(image_directory + 'adidas/')
-nike_images = os.listdir(image_directory + 'nike/')
+zero_images = os.listdir(image_directory + 'zero/')
+one_images = os.listdir(image_directory + 'one/')
 
 #Iterate through all images in one folder
 #Then save into the same numpy array 'dataset' but with label 1
 
-for i, image_name in enumerate(adidas_images):    #Remember enumerate method adds a counter and returns the enumerate object
+for i, image_name in enumerate(zero_images):    #Remember enumerate method adds a counter and returns the enumerate object
     if (image_name.split('.')[1] == 'jpg'):
-        image = cv2.imread(image_directory + 'adidas/' + image_name)
+        image = cv2.imread(image_directory + 'zero/' + image_name)
         image = Image.fromarray(image, 'RGB')
         image = image.resize((SIZE, SIZE))
         dataset.append(np.array(image))
         label.append(1)
 
-for i, image_name in enumerate(nike_images):    
+for i, image_name in enumerate(one_images):    
     
     if (image_name.split('.')[1] == 'jpg'):
-        image = cv2.imread(image_directory + 'nike/' + image_name)
+        image = cv2.imread(image_directory + 'one/' + image_name)
         image = Image.fromarray(image, 'RGB')
         image = image.resize((SIZE, SIZE))
         dataset.append(np.array(image))
@@ -143,5 +143,5 @@ print("Accuracy = ", (acc * 100.0), "%")
 
 ##check the dimension of image
 from skimage import io
-img = io.imread('dataset/nike/1.jpg')
+img = io.imread('Binary/one/1.jpg')
 img.shape 
