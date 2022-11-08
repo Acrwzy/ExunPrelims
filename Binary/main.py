@@ -1,99 +1,147 @@
-# Libraries imported:
+# Libraries used
 
-import tensorflow as tf
-import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D, BatchNormalization
+from keras.layers import Activation, Dropout, Flatten, Dense
 import os
 import cv2
-import matplotlib.pyplot as plt
-from tensorflow import keras
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.preprocessing import image
+from PIL import Image
+import numpy as np
 
-# Train and Test folders defined
+image_directory = '/dataset'
+SIZE = 512  
 
-train = ImageDataGenerator(rescale = 1/255)
-test = ImageDataGenerator(rescale = 1/255)
+dataset = []  #Many ways to handle data, you can use pandas. Here, we are using a list format.  
+label = []  #Place holders to define add labels. We will add 0 to all parasitized images and 1 to uninfected.
 
-# Located the Train and Test folders; set size as deisered 
+adidas_images = os.listdir(image_directory + 'adidas/')
+nike_images = os.listdir(image_directory + 'nike/')
 
-train_dataset = train.flow_from_directory("/Train/", 
-                                          target_size=(150,150), 
-                                          batch_size = 32,
-                                          class_mode = 'binary')
-                                         
-test_dataset = test.flow_from_directory("/Test/",
-                                        target_size=(150,150),
-                                        batch_size = 32,
-                                        class_mode = 'binary')
+#Iterate through all images in one folder
+#Then save into the same numpy array 'dataset' but with label 1
 
-# Begin: keras
+for i, image_name in enumerate(adidas_images):    #Remember enumerate method adds a counter and returns the enumerate object
+    if (image_name.split('.')[1] == 'jpg'):
+        image = cv2.imread(image_directory + 'adidas/' + image_name)
+        image = Image.fromarray(image, 'RGB')
+        image = image.resize((SIZE, SIZE))
+        dataset.append(np.array(image))
+        label.append(1)
 
-model = tf.keras.models.Sequential()
-
-# This is the first convolution
-
-tf.keras.layers.Conv2D(16, (3,3), activation='relu', input_shape=(200, 200, 3)),
-tf.keras.layers.MaxPooling2D(2, 2),
-
-# The second convolution
-
-tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
-tf.keras.layers.MaxPooling2D(2,2),
-
-# The third convolution
-
-tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-tf.keras.layers.MaxPooling2D(2,2),
-
-# The fourth convolution
-
-tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-tf.keras.layers.MaxPooling2D(2,2),
-
-# The fifth convolution
-
-tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-tf.keras.layers.MaxPooling2D(2,2),
-
-# Flatten the results to feed into a DNN
-
-tf.keras.layers.Flatten(),
-
-# 512 neuron hidden layer
-
-tf.keras.layers.Dense(512, activation='relu'),
-
-# Only 1 output neuron. It will contain a value from 0-1 where 0 for 1 class ('dandelions') and 1 for the other ('grass')
-
-tf.keras.layers.Dense(1, activation='sigmoid')
-
-# Compiling the AI
-
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-
-# Training the model: 
-
-model.fit_generator(train_dataset,
-                    steps_per_epoch = 8,
-                    epochs = 16,
-                    validation_data = test_dataset)
-
-# Figuring whether 0's or 1's, in an output form
-
-def predictImage(filename):
-    img1 = image.load_img(filename,target_size=(150,150))
-
-    plt.imshow(img1)
-
-    Y = image.img_to_array(img1)
-    X = np.expand_dims(Y,axis=0)
+for i, image_name in enumerate(nike_images):    
     
-    val = model.predict(X)
-    print(val)
-    
-    if val == 1:
-        plt.xlabel("1",fontsize=30)
-    elif val == 0:
-        plt.xlabel("0",fontsize=30)
+    if (image_name.split('.')[1] == 'jpg'):
+        image = cv2.imread(image_directory + 'nike/' + image_name)
+        image = Image.fromarray(image, 'RGB')
+        image = image.resize((SIZE, SIZE))
+        dataset.append(np.array(image))
+        label.append(0)
+dataset = np.array(dataset)
+label = np.array(label)
 
-                        
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(dataset, label, test_size = 80, 
+                                                    random_state = 0)
+
+#Normalization is a rescaling of the data from the original range 
+#so that all values are within the range of 0 and 1.
+
+from keras.utils import normalize
+X_train = normalize(X_train, axis=1)
+X_test = normalize(X_test, axis=1)
+
+#Do not do one-hot encoding as it generates a shape of (num, 2)
+#But the network expects an input of (num, 1) for the last layer for binary classification
+
+###2 conv and pool layers. with some normalization and drops in between.
+
+INPUT_SHAPE = (SIZE, SIZE, 3)   
+
+model = Sequential()
+model.add(Conv2D(32, (3, 3), input_shape=INPUT_SHAPE))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Conv2D(32, (3, 3), kernel_initializer = 'he_uniform'))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Conv2D(64, (3, 3), kernel_initializer = 'he_uniform'))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Flatten())
+model.add(Dense(64))
+model.add(Activation('relu'))
+model.add(Dropout(0.5))
+
+model.add(Dense(1))
+model.add(Activation('sigmoid'))  
+
+#Softmax is useful for mutually exclusive classes
+
+#class is given a probability and all add to 1. Highest one wins. 
+
+#Sigmoid outputs probability. Can be used for non-mutually exclusive problems.
+#But, also good for binary mutually exclusive (one or zero). 
+
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',             
+              metrics=['accuracy'])
+
+print(model.summary())    
+
+history = model.fit(X_train, 
+                         y_train,  
+                         verbose = 1, 
+                         epochs = 60,      
+                         validation_data=(X_test,y_test),
+                         shuffle = False
+                     )
+
+#plot the training and validation accuracy loss at each epoch
+
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(1, len(loss) + 1)
+plt.plot(epochs, loss, 'y', label='Training loss')
+plt.plot(epochs, val_loss, 'r', label='Validation loss')
+plt.title('Training and validation loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+
+#plot the training and validation accuracy at each epoch
+
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+plt.plot(epochs, acc, 'y', label='Training accuracy')
+plt.plot(epochs, val_acc, 'r', label='Validation accuracy')
+plt.title('Training and validation accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+
+#Test the model on one image
+
+n=0, #1,2,3
+img = X_test[n]
+plt.imshow(img)
+input_img = np.expand_dims(img, axis=0)     #Expand dims so the input is (num images, x, y, c)
+print("The prediction for this image is: ", model.predict(input_img))
+print("The actual label for this image is: ", y_test[n])
+
+##Accuracy
+_, acc = model.evaluate(X_test, y_test)
+print("Accuracy = ", (acc * 100.0), "%")
+
+##check the dimension of image
+from skimage import io
+img = io.imread('dataset/nike/1.jpg')
+img.shape 
